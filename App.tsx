@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import SearchForm from './components/SearchForm';
 import NewsCard from './components/NewsCard';
@@ -6,6 +7,7 @@ import SearchHistory from './components/SearchHistory';
 import { fetchNews } from './services/geminiService';
 import type { SearchResult } from './types';
 import { LinkIcon } from './components/IconComponents';
+import Logo from './components/Logo';
 
 const App: React.FC = () => {
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
@@ -13,6 +15,9 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [currentTopic, setCurrentTopic] = useState<string>('');
+
+  // Verifica se a chave da API existe para exibir um aviso se necessário
+  const apiKeyExists = !!process.env.API_KEY;
 
   useEffect(() => {
     try {
@@ -72,6 +77,7 @@ const App: React.FC = () => {
     <div className="bg-gray-100 dark:bg-gray-900 min-h-screen font-sans text-gray-900 dark:text-gray-100">
       <header className="bg-white dark:bg-gray-800 shadow-md py-6">
         <div className="container mx-auto px-4 text-center">
+          <Logo className="w-28 h-auto mx-auto mb-4" />
           <h1 className="text-4xl font-bold text-blue-600 dark:text-blue-400">
             RESUMO DE NOTÍCIAS - RIT TV
           </h1>
@@ -82,6 +88,13 @@ const App: React.FC = () => {
       </header>
 
       <main className="container mx-auto p-4 md:p-8">
+        {!apiKeyExists && (
+          <div className="p-4 mb-6 text-sm text-yellow-800 rounded-lg bg-yellow-100 dark:bg-yellow-900 dark:text-yellow-300" role="alert">
+            <span className="font-bold">Atenção:</span> A chave da API não foi encontrada. O aplicativo não funcionará. 
+            Por favor, configure a variável de ambiente <strong>API_KEY</strong> nas configurações do seu projeto na Vercel e faça o "Redeploy".
+          </div>
+        )}
+
         <section className="mb-10">
           <SearchForm onSearch={handleSearch} isLoading={isLoading} />
           <SearchHistory 
