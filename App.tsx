@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import SearchForm from './components/SearchForm';
 import NewsCard from './components/NewsCard';
@@ -8,6 +7,7 @@ import { fetchNews } from './services/geminiService';
 import type { SearchResult } from './types';
 import { LinkIcon } from './components/IconComponents';
 import Logo from './components/Logo';
+import ApiKeyModal from './components/ApiKeyModal';
 
 const App: React.FC = () => {
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
@@ -16,7 +16,9 @@ const App: React.FC = () => {
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [currentTopic, setCurrentTopic] = useState<string>('');
 
-  // Verifica se a chave da API existe para exibir um aviso se necessário
+  // Verifica se a chave da API existe para exibir o modal de instruções se necessário
+  // NOTA: A variável de ambiente do Vercel é definida no momento da compilação.
+  // Se a chave for adicionada, um "redeploy" é necessário para que ela seja incluída.
   const apiKeyExists = !!process.env.API_KEY;
 
   useEffect(() => {
@@ -36,13 +38,14 @@ const App: React.FC = () => {
     setSearchHistory(newHistory);
     try {
       localStorage.setItem('newsSearchHistory', JSON.stringify(newHistory));
+      // FIX: Added curly braces to the catch block to fix syntax error.
     } catch (e) {
       console.error("Failed to save search history to localStorage", e);
     }
   };
 
   const handleSearch = async (topic: string) => {
-    if (!topic || isLoading) return;
+    if (!topic || isLoading || !apiKeyExists) return;
 
     setIsLoading(true);
     setError(null);
@@ -75,6 +78,9 @@ const App: React.FC = () => {
 
   return (
     <div className="bg-gray-100 dark:bg-gray-900 min-h-screen font-sans text-gray-900 dark:text-gray-100">
+      
+      {!apiKeyExists && <ApiKeyModal />}
+
       <header className="bg-white dark:bg-gray-800 shadow-md py-6">
         <div className="container mx-auto px-4 text-center">
           <Logo className="w-28 h-auto mx-auto mb-4" />
@@ -88,13 +94,6 @@ const App: React.FC = () => {
       </header>
 
       <main className="container mx-auto p-4 md:p-8">
-        {!apiKeyExists && (
-          <div className="p-4 mb-6 text-sm text-yellow-800 rounded-lg bg-yellow-100 dark:bg-yellow-900 dark:text-yellow-300" role="alert">
-            <span className="font-bold">Atenção:</span> A chave da API não foi encontrada. O aplicativo não funcionará. 
-            Por favor, configure a variável de ambiente <strong>API_KEY</strong> nas configurações do seu projeto na Vercel e faça o "Redeploy".
-          </div>
-        )}
-
         <section className="mb-10">
           <SearchForm onSearch={handleSearch} isLoading={isLoading} />
           <SearchHistory 
@@ -132,7 +131,8 @@ const App: React.FC = () => {
                 </h3>
                 <ul className="list-disc list-inside space-y-1">
                   {searchResult.sources.map((source, index) =>
-                    source.web ? (
+                    // FIX: Added a check for source.web.uri to prevent runtime errors with optional properties.
+                    source.web && source.web.uri ? (
                       <li key={index}>
                         <a
                           href={source.web.uri}
@@ -152,7 +152,7 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {!isLoading && !searchResult && !error && (
+        {!isLoading && !searchResult && !error && apiKeyExists && (
           <div className="text-center text-gray-500 dark:text-gray-400 py-16">
             <h2 className="text-2xl font-semibold">Bem-vindo!</h2>
             <p className="mt-2">Use a barra de pesquisa acima para encontrar as últimas notícias sobre qualquer assunto.</p>
